@@ -34,9 +34,9 @@ const makeCell = ({colour=Colour.White, cells = [[]]} = {}) => {
 }
 
 const world = makeCell({
-	colour: Colour.Red,
+	colour: Colour.Blue,
 	//cells: [[]],
-	//cells: [[makeCell({colour: Colour.Green}), makeCell({colour: Colour.Green})]],
+	//cells: [[makeCell({colour: Colour.Green}), makeCell({colour: Colour.Red})], [makeCell({colour: Colour.Green}), makeCell({colour: Colour.Green})]],
 })
 
 const drawCell = (cell) => {
@@ -63,6 +63,9 @@ const drawCells = (cells) => {
 	const cellWidth = WORLD_WIDTH / columnCount
 	
 	for (const row of cells) {
+		
+		context.scale(1, 1/rowCount)
+
 		for (const cell of row) {
 			context.scale(1/columnCount, 1)
 			drawCell(cell)
@@ -70,7 +73,11 @@ const drawCells = (cells) => {
 			context.translate(cellWidth, 0)
 		}
 		context.translate(-WORLD_WIDTH, 0)
+		
+		context.scale(1, rowCount)
+		context.translate(0, cellHeight)
 	}
+	context.translate(0, -WORLD_HEIGHT)
 }
 
 updateCell = (cell) => {
@@ -91,14 +98,26 @@ updateCell = (cell) => {
 		]]
 		return
 	}
-}
-
-const tick = () => {
-	context.clearRect(0, 0, WORLD_WIDTH, WORLD_HEIGHT)
-	drawCell(world)
-	if (!paused) {
-		updateCell(world)
+	
+	if (cell.colour === Colour.Blue) {
+		cell.colour = undefined
+		cell.cells = [
+			[makeCell({colour: Colour.Green}), makeCell({colour: Colour.Green})],
+			[makeCell({colour: Colour.Blue}), makeCell({colour: Colour.Blue})],
+		]
+		return
 	}
 }
 
-setInterval(tick, 500)
+const tick = () => {
+	if (!paused) {
+		context.clearRect(0, 0, WORLD_WIDTH, WORLD_HEIGHT)
+		drawCell(world)
+		updateCell(world)
+	}
+	//requestAnimationFrame(tick)
+}
+
+//tick()
+
+setInterval(tick, 1000)
