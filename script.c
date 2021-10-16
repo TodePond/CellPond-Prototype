@@ -115,6 +115,8 @@ void updateCell(Cell *cell) {
 
 			cell->any.isSingle = false;
 			cell->multi.cells = array;
+			cell->multi.width = 2;
+			cell->multi.height = 1;
 
 		}
 	}
