@@ -16,7 +16,7 @@ on.load(async () => {
 
 	c = await loadWasm("script.wasm", environment)
 	c.setup()
-	setInterval(tick, 1000 / 60)
+	setInterval(tick, 1000 / 2)
 
 	trigger("resize")
 })
@@ -25,9 +25,11 @@ on.load(async () => {
 // WASM ENVIRONMENT //
 //==================//
 const environment = {print}
-environment.setFillStyle = (r, g, b, a) => context.fillStyle = `rgba(${r}, ${g}, ${b}, ${a})`
+environment.setFillStyle = (r, g, b, a) => context.fillStyle = `rgba(${r}, ${g}, ${b}, ${a/255})`
 environment.fillRect = (...args) => context.fillRect(...args)
 environment.clearRect = (...args) => context.clearRect(...args)
+environment.translate = (x, y) => context.translate(x, y)
+environment.scale = (x, y) => context.scale(x, y)
 
 //==============//
 // WASM USEFULS //
@@ -61,7 +63,7 @@ on.resize(() => {
 	draw()
 })
 
-let paused = true
+let paused = false
 on.keydown(e => {
 	if (e.key === " ") {
 		paused = !paused
@@ -72,8 +74,10 @@ on.keydown(e => {
 // GAME LOOP //
 //===========//
 const tick = () => {
-	update()
-	draw()
+	if (!paused) {
+		update()
+		draw()
+	}
 }
 
 const update = () => {
