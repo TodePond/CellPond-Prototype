@@ -1,24 +1,64 @@
-
+//=======//
+// SETUP //
+//=======//
 const canvas = document.createElement("canvas")
 const context = canvas.getContext("2d")
 canvas.style["background-color"] = Colour.Grey
 canvas.style["margin"] = 0
 
-on.load(() => {
+let c = {}
+on.load(async () => {
+
 	document.body.style["background-color"] = Colour.Black
 	document.body.style["margin"] = 0
+	document.body.style["overflow"] = "hidden"
 	document.body.appendChild(canvas)
+
+	c = await loadWasm("script.wasm", environment)
+	c.setup()
+	setInterval(tick, 1000 / 60)
+
 	trigger("resize")
 })
 
-const WORLD_WIDTH = 1000
-const WORLD_HEIGHT = 1000
+//==================//
+// WASM ENVIRONMENT //
+//==================//
+const environment = {print}
+environment.setFillStyle = (r, g, b, a) => context.fillStyle = `rgba(${r}, ${g}, ${b}, ${a})`
+environment.fillRect = (...args) => context.fillRect(...args)
+environment.clearRect = (...args) => context.clearRect(...args)
 
+//==============//
+// WASM USEFULS //
+//==============//
+const loadWasm = async (path, env) => {
+	const response = await fetch(path)
+	const wasm = await response.arrayBuffer()
+	const {instance} = await WebAssembly.instantiate(wasm, {env})
+	
+	return instance.exports
+
+	//imageDataBuffer = getWasmGlobal("imageData", {length: WORLD_AREA * 4, type: Uint8ClampedArray})
+	//imageData = new ImageData(imageDataBuffer, WORLD_SIZE, WORLD_SIZE)
+	
+}
+
+const getWasmGlobal = (name, {length=1, type=Int32Array}) => {
+	const offset = c[name]
+	return new type(c.memory.buffer, offset, length)
+}
+
+//================//
+// UI SHENANIGENS //
+//================//
 on.resize(() => {
-	canvas.width = WORLD_WIDTH
-	canvas.height = WORLD_HEIGHT
-	canvas.style["width"] = 500
-	canvas.style["height"] = 500
+	canvas.width = document.body.clientWidth
+	canvas.height = document.body.clientHeight
+	canvas.style["width"] = canvas.width
+	canvas.style["height"] = canvas.height
+	c.resize(document.body.clientWidth, document.body.clientHeight)
+	draw()
 })
 
 let paused = true
@@ -28,96 +68,18 @@ on.keydown(e => {
 	}
 })
 
-const makeCell = ({colour=Colour.White, cells = [[]]} = {}) => {
-	const cell = {colour, cells}
-	return cell
-}
-
-const world = makeCell({
-	colour: Colour.Blue,
-	//cells: [[]],
-	//cells: [[makeCell({colour: Colour.Green}), makeCell({colour: Colour.Red})], [makeCell({colour: Colour.Green}), makeCell({colour: Colour.Green})]],
-})
-
-const drawCell = (cell) => {
-	if (cell.cells[0].length === 0) {
-	
-		context.fillStyle = cell.colour
-		context.fillRect(0, 0, WORLD_HEIGHT, WORLD_WIDTH)
-		context.strokeStyle = Colour.Grey
-		context.lineWidth = 10
-		context.strokeRect(0, 0, WORLD_HEIGHT, WORLD_WIDTH)
-	}
-	
-	else {
-		drawCells(cell.cells)
-	}
-}
-
-const drawCells = (cells) => {
-	
-	const rowCount = cells.length
-	const columnCount = cells[0].length
-	
-	const cellHeight = WORLD_HEIGHT / rowCount
-	const cellWidth = WORLD_WIDTH / columnCount
-	
-	for (const row of cells) {
-		
-		context.scale(1, 1/rowCount)
-
-		for (const cell of row) {
-			context.scale(1/columnCount, 1)
-			drawCell(cell)
-			context.scale(columnCount, 1)
-			context.translate(cellWidth, 0)
-		}
-		context.translate(-WORLD_WIDTH, 0)
-		
-		context.scale(1, rowCount)
-		context.translate(0, cellHeight)
-	}
-	context.translate(0, -WORLD_HEIGHT)
-}
-
-updateCell = (cell) => {
-	if (cell.colour === undefined) {
-		for (const row of cell.cells) {
-			for (const cell of row) {
-				updateCell(cell)
-			}
-		}
-		return
-	}
-	
-	if (cell.colour === Colour.Red) {
-		cell.colour = undefined
-		cell.cells = [[
-			makeCell({colour: Colour.Red}),
-			makeCell({colour: Colour.White})
-		]]
-		return
-	}
-	
-	if (cell.colour === Colour.Blue) {
-		cell.colour = undefined
-		cell.cells = [
-			[makeCell({colour: Colour.Green}), makeCell({colour: Colour.Green})],
-			[makeCell({colour: Colour.Blue}), makeCell({colour: Colour.Blue})],
-		]
-		return
-	}
-}
-
+//===========//
+// GAME LOOP //
+//===========//
 const tick = () => {
-	if (!paused) {
-		context.clearRect(0, 0, WORLD_WIDTH, WORLD_HEIGHT)
-		drawCell(world)
-		updateCell(world)
-	}
-	//requestAnimationFrame(tick)
+	update()
+	draw()
 }
 
-//tick()
+const update = () => {
+	c.update()
+}
 
-setInterval(tick, 1000)
+const draw = () => {
+	c.draw()
+}
