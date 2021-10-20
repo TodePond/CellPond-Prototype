@@ -40,10 +40,18 @@ on.keydown(e => {
 //===========//
 // GAME LOOP //
 //===========//
-const reds = [0, 23, 55, 70, 102, 128, 159, 178, 204, 242, 255]
-const greens = [0, 29, 51, 67, 102, 128, 153, 174, 204, 245, 255]
-const blues = [0, 26, 40, 77, 98, 128, 153, 179, 201, 247, 255]
-const alphas = [0, 26, 51, 77, 102, 128, 153, 179, 204, 230, 255]
+/*const reds = [23, 55, 70, 102, 128, 159, 178, 204, 242, 255]
+const greens = [29, 51, 67, 102, 128, 153, 174, 204, 245, 255]
+const blues = [26, 40, 77, 98, 128, 153, 179, 201, 247, 255]
+const alphas = [26, 51, 77, 102, 128, 153, 179, 204, 230, 255]*/
+
+const reds = [23, 55, 70, 98, 128, 159, 174, 204, 242, 255]
+const greens = [29, 67, 98, 128, 159, 174, 204, 222, 245, 255]
+const blues = [40, 70, 98, 128, 159, 174, 201, 222, 247, 255]
+
+print("reds", reds.length)
+print("greens", greens.length)
+print("blues", blues.length)
 
 const RECT_SIZE = 20
 
@@ -69,17 +77,18 @@ const draw = function*() {
 		const blue = blues[b]
 		context.fillStyle = `rgb(${red}, ${green}, ${blue})`
 
-		//let y = g * RECT_SIZE
-		//let x = b * RECT_SIZE + r * RECT_SIZE*11
-		/*while (x+RECT_SIZE > document.body.clientWidth) {
-			y += RECT_SIZE*11
+		/*let d = RECT_SIZE
+		let y = g * RECT_SIZE
+		let x = b * RECT_SIZE + r * RECT_SIZE*blues.length
+		while (x+RECT_SIZE > document.body.clientWidth) {
+			y += RECT_SIZE*greens.length
 			x -= document.body.clientWidth
 			
 		}*/
 
-		let scale = 1.0
+		let scale = 0.1
 		let d = RECT_SIZE
-		d += r * RECT_SIZE * scale
+		d += r**2 * RECT_SIZE * scale
 
 		let x = g * d
 		let y = b * d
@@ -89,6 +98,12 @@ const draw = function*() {
 
 		x += r * d * movement
 		y += r * d * movement
+
+		x -= (d ** 2)/(200  * scale)
+		y -= (d ** 2)/(500  * scale)
+
+		x += 1000
+		y += 500
 
 
 		context.fillRect(x, y, d, d)
