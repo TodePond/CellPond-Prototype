@@ -21,36 +21,6 @@ on.load(async () => {
 	trigger("resize")
 })
 
-//==================//
-// WASM ENVIRONMENT //
-//==================//
-const environment = {print}
-environment.setFillStyle = (r, g, b, a) => context.fillStyle = `rgba(${r}, ${g}, ${b}, ${a/255})`
-environment.fillRect = (...args) => context.fillRect(...args)
-environment.clearRect = (...args) => context.clearRect(...args)
-environment.translate = (x, y) => context.translate(x, y)
-environment.scale = (x, y) => context.scale(x, y)
-
-//==============//
-// WASM USEFULS //
-//==============//
-const loadWasm = async (path, env) => {
-	const response = await fetch(path)
-	const wasm = await response.arrayBuffer()
-	const {instance} = await WebAssembly.instantiate(wasm, {env})
-	
-	return instance.exports
-
-	//imageDataBuffer = getWasmGlobal("imageData", {length: WORLD_AREA * 4, type: Uint8ClampedArray})
-	//imageData = new ImageData(imageDataBuffer, WORLD_SIZE, WORLD_SIZE)
-	
-}
-
-const getWasmGlobal = (name, {length=1, type=Int32Array}) => {
-	const offset = c[name]
-	return new type(c.memory.buffer, offset, length)
-}
-
 //================//
 // UI SHENANIGENS //
 //================//
