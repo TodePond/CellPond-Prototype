@@ -56,25 +56,16 @@ on.mousewheel(e => {
 	if (e.deltaY > 0) {
 		const zoom = (camera.scale - camera.scale * (1 - CAMERA_ZOOM_SPEED))
 		camera.scale -= zoom
-		
-		//camera.x += zoom * Mouse.position[0]
-		//camera.y += zoom * Mouse.position[1]
 
 		camera.x += zoom * dropper.x
 		camera.y += zoom * dropper.y
-
-		//camera.x += 0.1 * (Mouse.position[0] - canvas.width/2) * 1.5
-		//camera.y += 0.1 * (Mouse.position[1] - canvas.height/2) * 1.5
 	}
 	else {
 		const zoom = (camera.scale - camera.scale * (1 - CAMERA_ZOOM_SPEED))
 		camera.scale += zoom
-		
-		//const xRatio = canvas.width / CELL_SIZE
 
 		camera.x -= zoom * dropper.x
 		camera.y -= zoom * dropper.y
-		//camera.y -= 0.1 * (Mouse.position[1] - canvas.height/2) * 1.5
 		
 	}
 	updateDropperPosition()
@@ -116,15 +107,24 @@ const makeColourStyle = ([R, G, B]) => {
 //============//
 // WORLD DATA //
 //============//
-const makeCell = (content = [0, 0, 0], isMulti = false) => {
+const makeCell = (content = [0, 0, 0], isMulti = false, width = 1) => {
 	const cell = {
 		isMulti,
 		content,
+		width,
 	}
 	return cell
 }
 
-const world = makeCell([0, 0, 0], false)
+//const world = makeCell([0, 0, 0], false)
+const world = {
+	isMulti: true,
+	width: 2,
+	content: [
+		makeCell(COLOUR_RED),
+		makeCell(COLOUR_BLUE),
+	]
+}
 
 //===========//
 // GAME LOOP //
@@ -162,26 +162,49 @@ const draw = () => {
 	context.clearRect(0, 0, canvas.width, canvas.height)
 
 	context.translate(camera.x, camera.y)
-
-	//context.translate(canvas.width/2, canvas.height/2)
 	context.scale(camera.scale, camera.scale)
-	//context.translate(-canvas.width/2, -canvas.height/2)
 
 	drawCell(world)
-	drawDropper()
 
-	//context.translate(canvas.width/2, canvas.height/2)
 	context.scale(1/camera.scale, 1/camera.scale)
-	//context.translate(-canvas.width/2, -canvas.height/2)
-
 	context.translate(-camera.x, -camera.y)
 }
 
+const CELL_MARGIN = 0.02
 const CELL_SIZE = 1000
 const drawCell = (cell) => {
-	const style = makeColourStyle(cell.content)
-	context.fillStyle = style
-	context.fillRect(0, 0, CELL_SIZE, CELL_SIZE)
+	if (!cell.isMulti) {
+		const style = makeColourStyle(cell.content)
+		context.fillStyle = style
+		context.fillRect(0, 0, CELL_SIZE, CELL_SIZE)
+	} else {
+
+		const width = cell.width
+		const height = cell.content.length / width
+		context.scale(1/width, 1/height)
+
+		let i = 0
+		for (let x = 0; x < width; x++) {
+			for (let y = 0; y < height; y++) {
+
+				context.translate(CELL_SIZE/2, CELL_SIZE/2)
+				context.scale(1-CELL_MARGIN, 1-CELL_MARGIN)
+				context.translate(-CELL_SIZE/2, -CELL_SIZE/2)
+				drawCell(cell.content[i])
+				context.translate(CELL_SIZE/2, CELL_SIZE/2)
+				context.scale(1/(1-CELL_MARGIN), 1/(1-CELL_MARGIN))
+				context.translate(-CELL_SIZE/2, -CELL_SIZE/2)
+
+				context.translate(0, CELL_SIZE)
+				i++
+			}
+			context.translate(0, -CELL_SIZE*height)
+			context.translate(CELL_SIZE, 0)
+		}
+		context.translate(-CELL_SIZE*width, 0)
+		context.scale(width, height)
+
+	}
 }
 
 const DROPPER_SIZE = 50
