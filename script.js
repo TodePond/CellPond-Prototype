@@ -13,7 +13,8 @@ on.load(async () => {
 	document.body.style["overflow"] = "hidden"
 	document.body.appendChild(canvas)
 
-	setInterval(tick, 1000 / 60)
+	setInterval(tick, 1000 / 2)
+	setInterval(draw, 1000 / 60)
 
 	trigger("resize")
 })
@@ -47,7 +48,7 @@ on.mousemove(e => {
 		camera.x += e.movementX
 		camera.y += e.movementY
 		updateDropperPosition()
-		draw()
+		//draw()
 	}
 })
 
@@ -69,7 +70,7 @@ on.mousewheel(e => {
 		
 	}
 	updateDropperPosition()
-	draw()
+	//draw()
 })
 
 on.contextmenu(e => {
@@ -116,15 +117,15 @@ const makeCell = (content = [0, 0, 0], isMulti = false, width = 1) => {
 	return cell
 }
 
-//const world = makeCell([0, 0, 0], false)
-const world = {
+const world = makeCell([9, 1, 1], false)
+/*const world = {
 	isMulti: true,
 	width: 2,
 	content: [
 		makeCell(COLOUR_RED),
 		makeCell(COLOUR_BLUE),
 	]
-}
+}*/
 
 //===========//
 // GAME LOOP //
@@ -135,14 +136,93 @@ let dropper = {
 }
 
 const tick = () => {
+	//updateDropperPosition()
 	if (!paused) {
 		update()
-		draw()
 	}
+	//draw()
 }
 
 const update = () => {
-	updateDropperPosition()
+	updateCell(world)
+}
+
+const updateCell = (cell) => {
+
+	if (cell.isMulti) {
+		for (const subcell of cell.content) {
+			updateCell(subcell)
+		}
+		return
+	}
+	
+	//=====//
+	// 1x1 //
+	//=====//
+	const code = getCellCode(cell)
+	const behave = BEHAVES.get(code)
+	if (behave === undefined) return
+	setCellCode(cell, behave)
+
+}
+
+const setCellCode = (cell, code) => {
+
+	const newCell = generateCell(code)
+	cell.isMulti = newCell.isMulti
+	cell.width = newCell.width
+	cell.content = newCell.content
+		
+}
+
+const generateCell = (code) => {
+	const cell = {}
+
+	if (code.length === 3) {
+		cell.isMulti = false
+		cell.content = code.split("").map(c => parseInt(c))
+		return cell
+	}
+
+	const [header, ...tails] = code.split(":")
+	const width = parseInt(header.slice(1))
+	const tail = tails.join(":")
+	let codes = []
+	let depth = 0
+	for (let i = 0; i < tail.length; i++) {
+		const c = tail[i]
+		if (depth <= 0 && c === ",") {
+			codes.push("")
+			continue
+		}
+		if (c === "(") {
+			depth++
+		}
+		if (c === ")") {
+			depth--
+			if (depth < 0) continue
+		}
+		if (codes.length === 0) codes.push("")
+		codes[codes.length-1] += c
+	}
+
+	const content = codes.map(c => generateCell(c))
+
+	cell.isMulti = true
+	cell.width = width
+	cell.content = content
+	return cell
+
+}
+
+const getCellCode = (cell) => {
+	if (!cell.isMulti) {
+		return "" + cell.content[0] + cell.content[1] + cell.content[2]
+	}
+	else {
+		const width = cell.width
+		return "(" + width + cell.content.map(c => getCellCode(c)) + ")"
+	}
 }
 
 const updateDropperPosition = () => {
@@ -158,7 +238,8 @@ const getDropperPosition = () => {
 }
 
 const draw = () => {
-
+	updateDropperPosition()
+	context.resetTransform()
 	context.clearRect(0, 0, canvas.width, canvas.height)
 
 	context.translate(camera.x, camera.y)
@@ -170,7 +251,7 @@ const draw = () => {
 	context.translate(-camera.x, -camera.y)
 }
 
-const CELL_MARGIN = 0.02
+const CELL_MARGIN = 0.01
 const CELL_SIZE = 1000
 const drawCell = (cell) => {
 	if (!cell.isMulti) {
@@ -212,3 +293,17 @@ const drawDropper = () => {
 	context.strokeStyle = "white"
 	context.strokeRect(dropper.x - DROPPER_SIZE/2, dropper.y - DROPPER_SIZE/2, DROPPER_SIZE, DROPPER_SIZE)
 }
+
+//=========//
+// BEHAVES //
+//=========//
+const BEHAVES = new Map()
+/*BEHAVES.set("911", "(2:293,239)")
+BEHAVES.set("293", "(1:911,239)")*/
+
+world.content = [6, 0, 0]
+for (let r = 9; r > 0; r--) {
+	const nr = Math.max(r - 1, 0)
+	BEHAVES.set(`${r}00`, `(2:${nr}00,${nr}00),${nr}00,${nr}00)`)
+}
+
