@@ -84,18 +84,18 @@ const REDS   = [23, 55, 70,  98, 128, 159, 174, 204, 242, 255]
 const GREENS = [29, 67, 98, 128, 159, 174, 204, 222, 245, 255]
 const BLUES  = [40, 70, 98, 128, 159, 174, 201, 222, 247, 255]
 
-const COLOUR_BLACK = [0, 0, 0]
-const COLOUR_GREY = [1, 1, 2]
-const COLOUR_SILVER = [5, 5, 6]
-const COLOUR_WHITE = [9, 9, 9]
-const COLOUR_GREEN = [2, 9, 3]
-const COLOUR_RED = [9, 1, 1]
-const COLOUR_BLUE = [2, 3, 9]
-const COLOUR_YELLOW = [9, 6, 1]
-const COLOUR_ORANGE = [9, 3, 1]
-const COLOUR_PINK = [9, 3, 4]
-const COLOUR_CYAN = [2, 6, 9]
-const COLOUR_PURPLE = [4, 1, 9]
+const BLACK = "000"
+const GREY = "112"
+const SILVER = "556"
+const WHITE = "999"
+const GREEN = "293"
+const RED = "911"
+const BLUE = "239"
+const YELLOW = "961"
+const ORANGE = "931"
+const PINK = "934"
+const CYAN = "269"
+const PURPLE = "419"
 
 const makeColourStyle = ([R, G, B]) => {
 	const r = REDS[R]
@@ -243,7 +243,8 @@ const update = () => {
 const updateCell = (cell) => {
 
 	if (cell.isMulti) {
-		for (const subcell of cell.content) {
+		for (let i = cell.content.length-1; i >= 0; i--) {
+			const subcell = cell.content[i]
 			updateCell(subcell)
 		}
 		return
@@ -266,6 +267,16 @@ const updateCell = (cell) => {
 	const behave12 = BEHAVES.get(code12)
 	if (behave12 !== undefined) {
 		setWindow12(cell, behave12)
+		return
+	}
+
+	//=====//
+	// 2x1 //
+	//=====//
+	const code21 = getWindow21(cell)
+	const behave21 = BEHAVES.get(code21)
+	if (behave21 !== undefined) {
+		setWindow21(cell, behave21)
 		return
 	}
 
@@ -328,10 +339,22 @@ const getWindow12 = (cell) => {
 	return code
 }
 
+const getWindow21 = (cell) => {
+	
+	const originCode = getCellCode(cell)
+	const right = getRight(cell)
+	if (right === undefined) return
+
+	const rightCode = getCellCode(right)
+	
+	const code = "(2:" + originCode + "," + rightCode + ")"
+	return code
+}
+
 const getBelow = (cell) => {
 	if (cell.parent === undefined) return
 	if (!cell.parent.isMulti) return
-	if (cell.content.length <= cell.parent.width) return
+	//if (cell.content.length <= cell.parent.width) return
 	const position = cell.parent.content.indexOf(cell)
 	const height = cell.parent.content.length / cell.parent.width
 	const isInBottomRow = position % height === 1
@@ -357,6 +380,54 @@ const getBelow = (cell) => {
 
 }
 
+const getRight = (cell, bug=false) => {
+	if (cell.parent === undefined) return
+	if (!cell.parent.isMulti) return
+	//if (cell.content.length <= cell.parent.width) return
+	const position = cell.parent.content.indexOf(cell)
+	const height = cell.parent.content.length / cell.parent.width
+	const isInRightRow = position >= cell.parent.content.length - height
+
+	if (bug) {
+		//print(position, isInRightRow)
+		//print(cell)
+	}
+
+
+	if (isInRightRow) {
+		
+		if (cell.parent.parent === undefined) return
+		if (cell.content[2] === 9) {
+			//print(cell.parent)
+			//print(pright)
+			bug = true
+		}
+
+		const pright = getRight(cell.parent, bug)
+		
+		if (pright === undefined) return
+		
+		if (!pright.isMulti) return
+		if (pright.width !== cell.parent.width) return
+		if (pright.content.length !== pright.content.length) return
+		
+		const rightPosition = position - (pright.width-1)*height
+		const right = pright.content[rightPosition]
+		
+		/*if (cell.content[2] === 9) {
+
+			print(position, "=>", rightPosition)
+		}*/
+
+		return right
+	}
+
+	const rightPosition = position + height
+	const right = cell.parent.content[rightPosition]
+	return right
+
+}
+
 const setWindow12 = (cell, value) => {
 	const dummy = generateCell(value)
 
@@ -370,6 +441,22 @@ const setWindow12 = (cell, value) => {
 	below.content = dbelow.content
 	below.isMulti = dbelow.isMulti
 	below.width = dbelow.width
+
+}
+
+const setWindow21 = (cell, value) => {
+	const dummy = generateCell(value)
+
+	const dorigin = dummy.content[0]
+	cell.content = dorigin.content
+	cell.isMulti = dorigin.isMulti
+	cell.width = dorigin.width
+
+	const right = getRight(cell)
+	const dright = dummy.content[1]
+	right.content = dright.content
+	right.isMulti = dright.isMulti
+	right.width = dright.width
 
 }
 
@@ -466,7 +553,7 @@ const drawDropper = () => {
 //=========//
 // BEHAVES //
 //=========//
-let DROP = "961"
+let DROP = BLUE
 
 const BEHAVES = new Map()
 /*BEHAVES.set("911", "(2:293,239)")
@@ -479,5 +566,11 @@ for (let r = 9; r > 1; r--) {
 	BEHAVES.set(`${r}12`, `(2:${nr}12,${nr}12),${nr}12,${nr}12)`)
 }
 
-// FALL SAND!!!
+// SAND FALL
 BEHAVES.set("(1:961,112)", "(1:112,961)")
+BEHAVES.set("(1:961,239)", "(1:239,961)")
+
+// WATER FALL
+BEHAVES.set("(1:239,112)", "(1:112,239)")
+BEHAVES.set("(2:239,112)", "(2:112,239)")
+BEHAVES.set("(2:112,239)", "(2:239,112)")
