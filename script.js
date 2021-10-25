@@ -13,7 +13,7 @@ on.load(async () => {
 	document.body.style["overflow"] = "hidden"
 	document.body.appendChild(canvas)
 
-	setInterval(tick, 1000 / 2)
+	setInterval(tick, 1000 / 4)
 	setInterval(draw, 1000 / 60)
 
 	trigger("resize")
@@ -171,11 +171,6 @@ const drop = () => {
 		prevDropper.y = dropper.y
 		return
 	}
-	if (dropper.x >= CELL_SIZE || dropper.x < 0 || dropper.y >= CELL_SIZE || dropper.y < 0) {
-		prevDropper.x = dropper.x
-		prevDropper.y = dropper.y
-		return
-	}
 	if (prevDropper.x !== undefined) {
 		const [dx, dy] = [dropper.x - prevDropper.x, dropper.y - prevDropper.y]
 		const dmax = Math.max(Math.abs(dx), Math.abs(dy))
@@ -183,10 +178,15 @@ const drop = () => {
 			//drop(mx, my)
 			//dropperPreviousPosition = [mx, my]
 			
-			dropInCell(world, dropper.x, dropper.y)
 			prevDropper.x = dropper.x
 			prevDropper.y = dropper.y
-			return
+			if (dropper.x >= CELL_SIZE || dropper.x < 0 || dropper.y >= CELL_SIZE || dropper.y < 0) {
+				
+			}
+			else {
+				dropInCell(world, dropper.x, dropper.y)
+				return
+			}
 		}
 		
 		const [rx, ry] = [dx / dmax, dy / dmax]
@@ -194,6 +194,10 @@ const drop = () => {
 		for (let i = 0; i < dmax; i++) {
 			ix += rx
 			iy += ry
+			
+			if (ix >= CELL_SIZE || ix < 0 || iy >= CELL_SIZE || iy < 0) {
+				continue
+			}
 			dropInCell(world, ix, iy)
 		}
 
@@ -203,6 +207,9 @@ const drop = () => {
 }
 
 const dropInCell = (cell, x, y, sx = CELL_SIZE, sy = CELL_SIZE) => {
+
+	if (cell === undefined) return
+
 	if (!cell.isMulti) {
 		setCellCode(cell, DROP)
 		return
@@ -247,26 +254,33 @@ const updateCell = (cell) => {
 	//=====//
 	const code = getCellCode(cell)
 	const behave = BEHAVES.get(code)
-	if (behave === undefined) return
-	setCellCode(cell, behave)
+	if (behave !== undefined) {
+		setCellCode(cell, behave)
+		//return
+	}
+
+	//=====//
+	// 1x2 //
+	//=====//
+	const code12 = getWindow12(cell)
+	const behave12 = BEHAVES.get(code12)
+	if (behave12 === undefined) {
+		setWindow12(cell, behave12, 1, 2)
+		//return
+	}
 
 }
 
 const setCellCode = (cell, code) => {
-
-	const newCell = generateCell(code)
-	cell.isMulti = newCell.isMulti
-	cell.width = newCell.width
-	cell.content = newCell.content
-		
+	generateCell(code, cell)
 }
 
-const generateCell = (code) => {
-	const cell = {}
+const generateCell = (code, cell = {}, parent = cell.parent) => {
 
 	if (code.length === 3) {
 		cell.isMulti = false
 		cell.content = code.split("").map(c => parseInt(c))
+		cell.parent = parent
 		return cell
 	}
 
@@ -292,12 +306,52 @@ const generateCell = (code) => {
 		codes[codes.length-1] += c
 	}
 
-	const content = codes.map(c => generateCell(c))
+	const content = codes.map(c => generateCell(c, {}, cell))
 
 	cell.isMulti = true
 	cell.width = width
 	cell.content = content
+
 	return cell
+
+}
+
+const getWindow12 = (cell) => {
+	
+	const originCode = getCellCode(cell)
+	const below = getBelow(cell)
+	if (below === undefined) return
+
+	const belowCode = getCellCode(below).d
+	
+	const code = "(1:" + originCode + "," + belowCode + ")"
+	return code
+}
+
+const getBelow = (cell) => {
+	if (cell.parent === undefined) return
+	if (!cell.parent.isMulti) return
+	if (cell.content.length <= cell.parent.width) return
+	const position = cell.parent.content.indexOf(cell)
+	const height = cell.parent.content.length / cell.parent.width
+	const isInBottomRow = position % height === 1
+
+	if (cell.content[0] === 9) {
+		//print(isInBottomRow)
+	}
+
+	if (isInBottomRow) {
+		//TODO: overlap other cell
+		return
+	}
+
+	const belowPosition = position + 1
+	const below = cell.parent.content[belowPosition]
+	return below
+
+}
+
+const setWindow12 = (cell, value) => {
 
 }
 
@@ -394,16 +448,18 @@ const drawDropper = () => {
 //=========//
 // BEHAVES //
 //=========//
+let DROP = "961"
+
 const BEHAVES = new Map()
 /*BEHAVES.set("911", "(2:293,239)")
 BEHAVES.set("293", "(1:911,239)")*/
 
 // WORLD GEN!!!
-world.content = [8, 1, 2]
+world.content = [3, 1, 2]
 for (let r = 9; r > 1; r--) {
 	const nr = Math.max(r - 1, 0)
 	BEHAVES.set(`${r}12`, `(2:${nr}12,${nr}12),${nr}12,${nr}12)`)
 }
 
-let DROP = "961"
-
+// FALL SAND!!!
+BEHAVES.set("(1:961,112)", "(1:112,961)")
