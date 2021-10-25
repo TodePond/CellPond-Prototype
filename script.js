@@ -3,7 +3,7 @@
 //=======//
 const canvas = document.createElement("canvas")
 const context = canvas.getContext("2d")
-canvas.style["background-color"] = Colour.Grey
+canvas.style["background-color"] = Colour.Black
 canvas.style["margin"] = 0
 
 on.load(async () => {
@@ -154,10 +154,79 @@ let dropper = {
 
 const tick = () => {
 	//updateDropperPosition()
+	//drop()
 	if (!paused) {
 		update()
 	}
 	//draw()
+}
+
+let prevDropper = {
+	x: undefined,
+	y: undefined,
+}
+const drop = () => {
+	if (!Mouse.Left) {
+		prevDropper.x = dropper.x
+		prevDropper.y = dropper.y
+		return
+	}
+	if (dropper.x >= CELL_SIZE || dropper.x < 0 || dropper.y >= CELL_SIZE || dropper.y < 0) {
+		prevDropper.x = dropper.x
+		prevDropper.y = dropper.y
+		return
+	}
+	if (prevDropper.x !== undefined) {
+		const [dx, dy] = [dropper.x - prevDropper.x, dropper.y - prevDropper.y]
+		const dmax = Math.max(Math.abs(dx), Math.abs(dy))
+		if (dmax === 0) {
+			//drop(mx, my)
+			//dropperPreviousPosition = [mx, my]
+			
+			dropInCell(world, dropper.x, dropper.y)
+			prevDropper.x = dropper.x
+			prevDropper.y = dropper.y
+			return
+		}
+		
+		const [rx, ry] = [dx / dmax, dy / dmax]
+		let [ix, iy] = [prevDropper.x, prevDropper.y]
+		for (let i = 0; i < dmax; i++) {
+			ix += rx
+			iy += ry
+			dropInCell(world, ix, iy)
+		}
+
+	}
+	prevDropper.x = dropper.x
+	prevDropper.y = dropper.y
+}
+
+const dropInCell = (cell, x, y, sx = CELL_SIZE, sy = CELL_SIZE) => {
+	if (!cell.isMulti) {
+		setCellCode(cell, DROP)
+		return
+	}
+
+	const width = cell.width
+	const height = cell.content.length / width
+
+	const ccx = x / sx * width
+	const ccy = y / sy * height
+
+	const cx = Math.floor(ccx)
+	const cy = Math.floor(ccy)
+
+	const cutX = ccx - cx
+	const cutY = ccy - cy
+
+	const nx = cutX * sx/width
+	const ny = cutY * sy/height
+
+	const subcell = cell.content[cx * width + cy]
+
+	dropInCell(subcell, nx, ny, (sx/width), sy/height)
+
 }
 
 const update = () => {
@@ -256,6 +325,7 @@ const getDropperPosition = () => {
 
 const draw = () => {
 	updateDropperPosition()
+	drop()
 	context.resetTransform()
 	context.clearRect(0, 0, canvas.width, canvas.height)
 
@@ -268,7 +338,7 @@ const draw = () => {
 	context.translate(-camera.x, -camera.y)
 }
 
-const CELL_MARGIN = 0.05
+const CELL_MARGIN = 0.02
 const CELL_SIZE = 1000
 const CELL_MARGIN_SIZE = CELL_MARGIN * CELL_SIZE
 
@@ -276,7 +346,7 @@ let prevFillStyle = undefined
 const drawCell = (cell, ox=0, oy=0, sx=1, sy=1) => {
 	if (!cell.isMulti) {
 		setColourFillStyle(cell.content)
-		context.fillRect(ox, oy, (CELL_SIZE - CELL_MARGIN_SIZE)*sx, (CELL_SIZE - CELL_MARGIN_SIZE)*sy)
+		context.fillRect(ox + CELL_MARGIN_SIZE*sx, oy + CELL_MARGIN_SIZE*sy, (CELL_SIZE - CELL_MARGIN_SIZE*2)*sx, (CELL_SIZE - CELL_MARGIN_SIZE*2)*sy)
 	} else {
 
 		const width = cell.width
@@ -301,7 +371,7 @@ const drawCell = (cell, ox=0, oy=0, sx=1, sy=1) => {
 				i++
 				
 			}
-			const tx = x < width-1? CELL_SIZE : 0
+			//const tx = x < width-1? CELL_SIZE : 0
 			//context.translate(tx, -CELL_SIZE*(height-1))
 			oox += CELL_SIZE*ssx
 			ooy = 0
@@ -328,9 +398,12 @@ const BEHAVES = new Map()
 /*BEHAVES.set("911", "(2:293,239)")
 BEHAVES.set("293", "(1:911,239)")*/
 
-world.content = [7, 9, 3]
-for (let r = 9; r > 0; r--) {
+// WORLD GEN!!!
+world.content = [8, 1, 2]
+for (let r = 9; r > 1; r--) {
 	const nr = Math.max(r - 1, 0)
-	BEHAVES.set(`${r}93`, `(2:${nr}93,${nr}93),${nr}93,${nr}93)`)
+	BEHAVES.set(`${r}12`, `(2:${nr}12,${nr}12),${nr}12,${nr}12)`)
 }
+
+let DROP = "961"
 
