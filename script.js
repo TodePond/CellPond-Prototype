@@ -105,6 +105,23 @@ const makeColourStyle = ([R, G, B]) => {
 	return style
 }
 
+let prevR = undefined
+let prevG = undefined
+let prevB = undefined
+let prevStyle = undefined
+const setColourFillStyle = ([R, G, B]) => {
+	if (R === prevR && G === prevG && B === prevB) {
+		return
+	}
+	prevR = R
+	prevG = G
+	prevB = B
+	const style = makeColourStyle([R, G, B])
+	context.fillStyle = style
+	prevStyle = style
+	return style
+}
+
 //============//
 // WORLD DATA //
 //============//
@@ -251,38 +268,43 @@ const draw = () => {
 	context.translate(-camera.x, -camera.y)
 }
 
-const CELL_MARGIN = 0.01
+const CELL_MARGIN = 0.02
 const CELL_SIZE = 1000
-const drawCell = (cell) => {
+const CELL_MARGIN_SIZE = CELL_MARGIN * CELL_SIZE
+
+let prevFillStyle = undefined
+const drawCell = (cell, ox=0, oy=0) => {
 	if (!cell.isMulti) {
-		const style = makeColourStyle(cell.content)
-		context.fillStyle = style
-		context.fillRect(0, 0, CELL_SIZE, CELL_SIZE)
+		setColourFillStyle(cell.content)
+		context.fillRect(ox, oy, CELL_SIZE - CELL_MARGIN_SIZE, CELL_SIZE - CELL_MARGIN_SIZE)
 	} else {
 
 		const width = cell.width
 		const height = cell.content.length / width
+
+		// SHRINK subcells
 		context.scale(1/width, 1/height)
 
 		let i = 0
 		for (let x = 0; x < width; x++) {
 			for (let y = 0; y < height; y++) {
 
-				context.translate(CELL_SIZE/2, CELL_SIZE/2)
+				/*context.translate(CELL_SIZE/2, CELL_SIZE/2)
 				context.scale(1-CELL_MARGIN, 1-CELL_MARGIN)
-				context.translate(-CELL_SIZE/2, -CELL_SIZE/2)
+				context.translate(-CELL_SIZE/2, -CELL_SIZE/2)*/
 				drawCell(cell.content[i])
-				context.translate(CELL_SIZE/2, CELL_SIZE/2)
+				/*context.translate(CELL_SIZE/2, CELL_SIZE/2)
 				context.scale(1/(1-CELL_MARGIN), 1/(1-CELL_MARGIN))
-				context.translate(-CELL_SIZE/2, -CELL_SIZE/2)
+				context.translate(-CELL_SIZE/2, -CELL_SIZE/2)*/
 
 				context.translate(0, CELL_SIZE)
 				i++
 			}
-			context.translate(0, -CELL_SIZE*height)
-			context.translate(CELL_SIZE, 0)
+			context.translate(CELL_SIZE, -CELL_SIZE*height)
 		}
 		context.translate(-CELL_SIZE*width, 0)
+
+		// UnSHRINK subcells
 		context.scale(width, height)
 
 	}
@@ -301,9 +323,9 @@ const BEHAVES = new Map()
 /*BEHAVES.set("911", "(2:293,239)")
 BEHAVES.set("293", "(1:911,239)")*/
 
-world.content = [6, 0, 0]
+world.content = [7, 9, 3]
 for (let r = 9; r > 0; r--) {
 	const nr = Math.max(r - 1, 0)
-	BEHAVES.set(`${r}00`, `(2:${nr}00,${nr}00),${nr}00,${nr}00)`)
+	BEHAVES.set(`${r}93`, `(2:${nr}93,${nr}93),${nr}93,${nr}93)`)
 }
 
