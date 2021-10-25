@@ -13,7 +13,7 @@ on.load(async () => {
 	document.body.style["overflow"] = "hidden"
 	document.body.appendChild(canvas)
 
-	setInterval(tick, 1000 / 4)
+	setInterval(tick, 1000 / 60)
 	setInterval(draw, 1000 / 60)
 
 	trigger("resize")
@@ -30,7 +30,7 @@ on.resize(() => {
 	draw()
 })
 
-let paused = false
+let paused = true
 on.keydown(e => {
 	if (e.key === " ") {
 		paused = !paused
@@ -256,7 +256,7 @@ const updateCell = (cell) => {
 	const behave = BEHAVES.get(code)
 	if (behave !== undefined) {
 		setCellCode(cell, behave)
-		//return
+		return
 	}
 
 	//=====//
@@ -264,9 +264,9 @@ const updateCell = (cell) => {
 	//=====//
 	const code12 = getWindow12(cell)
 	const behave12 = BEHAVES.get(code12)
-	if (behave12 === undefined) {
-		setWindow12(cell, behave12, 1, 2)
-		//return
+	if (behave12 !== undefined) {
+		setWindow12(cell, behave12)
+		return
 	}
 
 }
@@ -322,7 +322,7 @@ const getWindow12 = (cell) => {
 	const below = getBelow(cell)
 	if (below === undefined) return
 
-	const belowCode = getCellCode(below).d
+	const belowCode = getCellCode(below)
 	
 	const code = "(1:" + originCode + "," + belowCode + ")"
 	return code
@@ -336,13 +336,19 @@ const getBelow = (cell) => {
 	const height = cell.parent.content.length / cell.parent.width
 	const isInBottomRow = position % height === 1
 
-	if (cell.content[0] === 9) {
-		//print(isInBottomRow)
-	}
-
 	if (isInBottomRow) {
-		//TODO: overlap other cell
-		return
+		if (cell.parent.parent === undefined) return
+
+		const pbelow = getBelow(cell.parent)
+		if (pbelow === undefined) return
+		if (!pbelow.isMulti) return
+		if (pbelow.width !== cell.parent.width) return
+		if (pbelow.content.length !== pbelow.content.length) return
+		
+		const belowPosition = position - height + 1
+		const below = pbelow.content[belowPosition]
+
+		return below
 	}
 
 	const belowPosition = position + 1
@@ -352,6 +358,18 @@ const getBelow = (cell) => {
 }
 
 const setWindow12 = (cell, value) => {
+	const dummy = generateCell(value)
+
+	const dorigin = dummy.content[0]
+	cell.content = dorigin.content
+	cell.isMulti = dorigin.isMulti
+	cell.width = dorigin.width
+
+	const below = getBelow(cell)
+	const dbelow = dummy.content[1]
+	below.content = dbelow.content
+	below.isMulti = dbelow.isMulti
+	below.width = dbelow.width
 
 }
 
@@ -455,7 +473,7 @@ const BEHAVES = new Map()
 BEHAVES.set("293", "(1:911,239)")*/
 
 // WORLD GEN!!!
-world.content = [3, 1, 2]
+world.content = [7, 1, 2]
 for (let r = 9; r > 1; r--) {
 	const nr = Math.max(r - 1, 0)
 	BEHAVES.set(`${r}12`, `(2:${nr}12,${nr}12),${nr}12,${nr}12)`)
