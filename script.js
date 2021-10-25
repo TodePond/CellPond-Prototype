@@ -297,12 +297,15 @@ const drawCell = (cell, ox=0, oy=0) => {
 				context.scale(1/(1-CELL_MARGIN), 1/(1-CELL_MARGIN))
 				context.translate(-CELL_SIZE/2, -CELL_SIZE/2)*/
 
-				context.translate(0, CELL_SIZE)
+				if (y < height-1) context.translate(0, CELL_SIZE)
+
 				i++
+				
 			}
-			context.translate(CELL_SIZE, -CELL_SIZE*height)
+			const tx = x < width-1? CELL_SIZE : 0
+			context.translate(tx, -CELL_SIZE*(height-1))
 		}
-		context.translate(-CELL_SIZE*width, 0)
+		context.translate(-CELL_SIZE*(width-1), 0)
 
 		// UnSHRINK subcells
 		context.scale(width, height)
