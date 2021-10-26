@@ -13,7 +13,7 @@ on.load(async () => {
 	document.body.style["overflow"] = "hidden"
 	document.body.appendChild(canvas)
 
-	setInterval(tick, 1000 / 20)
+	setInterval(tick, 1000 / 60)
 	setInterval(draw, 1000 / 60)
 
 	trigger("resize")
@@ -211,6 +211,10 @@ const dropInCell = (cell, x, y, sx = CELL_SIZE, sy = CELL_SIZE) => {
 	if (cell === undefined) return
 
 	if (!cell.isMulti) {
+		if (!OVER) {
+			const co = getCellCode(cell)
+			if (co !== GREY) return
+		}
 		setCellCode(cell, DROP)
 		return
 	}
@@ -249,10 +253,15 @@ const updateCell = (cell) => {
 			const subcell = cell.content[i]
 			updateCell(subcell)
 		}*/
+
+		// BOTTOM -> TOP
 		/*for (let i = cell.content.length-1; i >= 0; i--) {
 			const subcell = cell.content[i]
 			updateCell(subcell)
 		}*/
+
+
+
 		/*if (tickTock) {
 			for (let i = 0; i < cell.content.length; i++) {
 				const subcell = cell.content[i]
@@ -265,8 +274,10 @@ const updateCell = (cell) => {
 				updateCell(subcell)
 			}
 		}*/
-		//const shuffledSubCells = [...cell.content].shuffle()
-		/*for (let i = shuffledSubCells.length-1; i >= 0; i--) {
+
+		// SHUFFLED
+		/*const shuffledSubCells = [...cell.content].shuffle()
+		for (let i = shuffledSubCells.length-1; i >= 0; i--) {
 			const subcell = shuffledSubCells[i]
 			updateCell(subcell)
 		}*/
@@ -274,35 +285,12 @@ const updateCell = (cell) => {
 			const subcell = shuffledSubCells[i]
 			updateCell(subcell)
 		}*/
+
+		// FIRING 
 		for (let i = 0; i < cell.content.length; i++) {
 			const c = Random.Uint8 % cell.content.length
 			const subcell = cell.content[c]
 			updateCell(subcell)
-		}
-		return
-	}
-
-	//=====//
-	// 1x1 //
-	//=====//
-	const code = getCellCode(cell)
-	const behave = BEHAVES.get(code)
-	if (behave !== undefined) {
-		//potentialBehaves.push({behave, func: setCellCode})
-		setCellCode(cell, behave)
-		//return
-	}
-
-	//=====//
-	// 1x2 //
-	//=====//
-	let flipped12 = oneIn(2)
-	{
-		const code12 = getWindow12(cell, flipped12)
-		const behave12 = BEHAVES.get(code12)
-		if (behave12 !== undefined) {
-			setWindow12(cell, behave12, flipped12)
-			//return
 		}
 	}
 	
@@ -327,6 +315,34 @@ const updateCell = (cell) => {
 			//return
 		}
 	}*/
+	
+
+	//=====//
+	// 1x2 //
+	//=====//
+	let flipped12 = oneIn(2)
+	{
+		const code12 = getWindow12(cell, flipped12)
+		//if (code12 !== undefined) {
+			//print(code12)
+		//}
+		const behave12 = BEHAVES.get(code12)
+		if (behave12 !== undefined) {
+			setWindow12(cell, behave12, flipped12)
+			//return
+		}
+	}
+	
+	//=====//
+	// 1x1 //
+	//=====//
+	const code = getCellCode(cell)
+	const behave = BEHAVES.get(code)
+	if (behave !== undefined) {
+		//potentialBehaves.push({behave, func: setCellCode})
+		setCellCode(cell, behave)
+		//return
+	}
 
 }
 
@@ -457,7 +473,7 @@ const getBelow = (cell) => {
 	//if (cell.content.length <= cell.parent.width) return
 	const position = cell.parent.content.indexOf(cell)
 	const height = cell.parent.content.length / cell.parent.width
-	const isInBottomRow = position % height === 1
+	const isInBottomRow = position % height === height-1
 
 	if (isInBottomRow) {
 		if (cell.parent.parent === undefined) return
@@ -477,6 +493,54 @@ const getBelow = (cell) => {
 	const belowPosition = position + 1
 	const below = cell.parent.content[belowPosition]
 	return below
+
+}
+
+const getRight = (cell, bug=false) => {
+	if (cell.parent === undefined) return
+	if (!cell.parent.isMulti) return
+	//if (cell.content.length <= cell.parent.width) return
+	const position = cell.parent.content.indexOf(cell)
+	const height = cell.parent.content.length / cell.parent.width
+	const isInRightRow = position >= cell.parent.content.length - height
+
+	if (bug) {
+		//print(position, isInRightRow)
+		//print(cell)
+	}
+
+
+	if (isInRightRow) {
+		
+		if (cell.parent.parent === undefined) return
+		if (cell.content[2] === 9) {
+			//print(cell.parent)
+			//print(pright)
+			bug = true
+		}
+
+		const pright = getRight(cell.parent, bug)
+		
+		if (pright === undefined) return
+		
+		if (!pright.isMulti) return
+		if (pright.width !== cell.parent.width) return
+		if (pright.content.length !== pright.content.length) return
+		
+		const rightPosition = position - (pright.width-1)*height
+		const right = pright.content[rightPosition]
+		
+		/*if (cell.content[2] === 9) {
+
+			print(position, "=>", rightPosition)
+		}*/
+
+		return right
+	}
+
+	const rightPosition = position + height
+	const right = cell.parent.content[rightPosition]
+	return right
 
 }
 
@@ -528,53 +592,6 @@ const getLeft = (cell, bug=false) => {
 
 }
 
-const getRight = (cell, bug=false) => {
-	if (cell.parent === undefined) return
-	if (!cell.parent.isMulti) return
-	//if (cell.content.length <= cell.parent.width) return
-	const position = cell.parent.content.indexOf(cell)
-	const height = cell.parent.content.length / cell.parent.width
-	const isInRightRow = position >= cell.parent.content.length - height
-
-	if (bug) {
-		//print(position, isInRightRow)
-		//print(cell)
-	}
-
-
-	if (isInRightRow) {
-		
-		if (cell.parent.parent === undefined) return
-		if (cell.content[2] === 9) {
-			//print(cell.parent)
-			//print(pright)
-			bug = true
-		}
-
-		const pright = getRight(cell.parent, bug)
-		
-		if (pright === undefined) return
-		
-		if (!pright.isMulti) return
-		if (pright.width !== cell.parent.width) return
-		if (pright.content.length !== pright.content.length) return
-		
-		const rightPosition = position - (pright.width-1)*height
-		const right = pright.content[rightPosition]
-		
-		/*if (cell.content[2] === 9) {
-
-			print(position, "=>", rightPosition)
-		}*/
-
-		return right
-	}
-
-	const rightPosition = position + height
-	const right = cell.parent.content[rightPosition]
-	return right
-
-}
 
 const setWindow12 = (cell, value, flipped) => {
 	const dummy = generateCell(value)
@@ -649,7 +666,7 @@ const getCellCode = (cell) => {
 	}
 	else {
 		const width = cell.width
-		return "(" + width + cell.content.map(c => getCellCode(c)) + ")"
+		return "(" + width + ":" + cell.content.map(c => getCellCode(c)) + ")"
 	}
 }
 
@@ -736,26 +753,75 @@ const drawDropper = () => {
 //=========//
 // BEHAVES //
 //=========//
-let DROP = "253"
+//let DROP = "(2:269,239)"
+let DROP = "000"
+let OVER = false
 
 const BEHAVES = new Map()
 /*BEHAVES.set("911", "(2:293,239)")
 BEHAVES.set("293", "(1:911,239)")*/
 
 // FRACTAL ZTUFF
-world.content = [2, 5, 3]
+/*world.content = [2, 5, 3]
 for (let i = 9; i > 1; i--) {
 	const nr = Math.max(i - 1, 0)
 	//BEHAVES.set(`${nr}12`, `(2:${nr}12,${nr}12),${nr}11,${nr}12)`)
 	BEHAVES.set(`2${i}3`, `(2:2${nr}3,2${nr}3,239,2${nr}3)`)
-}
+}*/
 
 // WORLD GEN!!!
-/*world.content = [7, 1, 2]
+world.content = [7, 1, 2]
+for (let r = 9; r > 2; r--) {
+	const nr = Math.max(r - 1, 0)
+	BEHAVES.set(`${r}12`, `(2:${nr}12,${nr}12,${nr}12,${nr}12)`)
+}
+
+// WALL SPAWN
+BEHAVES.set(`(2:212,212)`, `(2:(2:000,556),(2:556,000))`)
+
+// WALLS LEFT+ROGHT
+BEHAVES.set(`(2:000,112)`, "(2:(2:000,556),(2:556,000))")
+BEHAVES.set(`(2:112,000)`, "(2:(2:000,556),(2:556,000))")
+
+BEHAVES.set(`(2:212,(2:000,556))`, `(2:(2:000,556),112)`)
+BEHAVES.set(`(2:112,(2:000,556))`, `(2:(2:000,556),112)`)
+BEHAVES.set(`(2:(2:000,556),(2:000,556))`, `(2:(2:000,556),112)`)
+
+BEHAVES.set(`(2:(2:556,000),212)`, `(2:112,(2:556,000))`)
+BEHAVES.set(`(2:(2:556,000),112)`, `(2:112,(2:556,000))`)
+BEHAVES.set(`(2:(2:556,000),(2:556,000))`, `(2:112,(2:556,000))`)
+
+BEHAVES.set(`(2:(2:556,000),(2:000,556))`, `(2:112,112)`)
+
+BEHAVES.set(`(1:112,(2:000,556))`, `(1:(2:000,556),(2:000,556))`)
+BEHAVES.set(`(1:112,(2:556,000))`, `(1:(2:556,000),(2:556,000))`)
+BEHAVES.set(`(1:212,(2:000,556))`, `(1:(2:000,556),(2:000,556))`)
+BEHAVES.set(`(1:212,(2:556,000))`, `(1:(2:556,000),(2:556,000))`)
+
+BEHAVES.set(`(1:(2:000,556),112)`, `(1:(2:000,556),(2:000,556))`)
+BEHAVES.set(`(1:(2:556,000),112)`, `(1:(2:556,000),(2:556,000))`)
+BEHAVES.set(`(1:(2:000,556),212)`, `(1:(2:000,556),(2:000,556))`)
+BEHAVES.set(`(1:(2:556,000),212)`, `(1:(2:556,000),(2:556,000))`)
+
+
+
+// BORDER WORLD GEN!!!
+/*world.content = [4, 0, 0]
 for (let r = 9; r > 1; r--) {
 	const nr = Math.max(r - 1, 0)
-	BEHAVES.set(`${r}12`, `(2:${nr}12,${nr}12),${nr}12,${nr}12)`)
+	BEHAVES.set(`${r}12`, `(3:${nr}12,${nr}12,${nr}12,${nr}12,${nr}12,${nr}12,${nr}12,${nr}12,${nr}12)`)
+	BEHAVES.set(`${r}00`, `(3:${nr}00,${nr}00,${nr}00,${nr}00,${nr}12,${nr}00,${nr}00,${nr}00,${nr}00)`)
 }*/
+
+
+//BEHAVES.set(`((3:100,100,100,100,112,100,100,100,100)`, `239`)
+
+/*for (let r = 9; r > 0; r--) {
+	const nr = Math.max(r - 1, 0)
+	
+}*/
+
+//BEHAVES.set("(2:112,112)", "(2:000,000)")
 
 // SAND FALL
 BEHAVES.set("(1:961,112)", "(1:112,961)")
@@ -766,3 +832,14 @@ BEHAVES.set("(1:239,112)", "(1:112,239)")
 BEHAVES.set("(2:239,112)", "(2:112,239)")
 BEHAVES.set("(2:112,239)", "(2:239,112)")
 
+// LEFT WATER
+BEHAVES.set("(1:(2:239,269),112)", "(1:112,(2:239,269))")
+BEHAVES.set("(2:112,(2:239,269))", "(2:(2:239,269),112)")
+BEHAVES.set("(2:(2:239,269),(2:239,269))", "(2:(2:239,269),(2:269,239))")
+BEHAVES.set("(2:(2:269,269),(2:239,269))", "(2:(2:269,269),(2:269,239))")
+
+// RIGHT WATER
+BEHAVES.set("(1:(2:269,239),112)", "(1:112,(2:269,239))")
+BEHAVES.set("(2:(2:269,239),112)", "(2:112,(2:269,239))")
+BEHAVES.set("(2:(2:269,239),(2:269,239))", "(2:(2:239,269),(2:269,239))")
+BEHAVES.set("(2:(2:269,239),(2:239,239))", "(2:(2:239,269),(2:239,239))")
