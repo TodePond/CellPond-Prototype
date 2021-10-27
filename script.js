@@ -13,7 +13,7 @@ on.load(async () => {
 	document.body.style["overflow"] = "hidden"
 	document.body.appendChild(canvas)
 
-	setInterval(tick, 1000 / 60)
+	setInterval(tick, 1000 / 40)
 	setInterval(draw, 1000 / 60)
 
 	trigger("resize")
@@ -276,22 +276,22 @@ const updateCell = (cell) => {
 		}*/
 
 		// SHUFFLED
-		/*const shuffledSubCells = [...cell.content].shuffle()
+		const shuffledSubCells = [...cell.content].shuffle()
 		for (let i = shuffledSubCells.length-1; i >= 0; i--) {
 			const subcell = shuffledSubCells[i]
 			updateCell(subcell)
-		}*/
+		}
 		/*for (let i = 0; i < shuffledSubCells.length; i++) {
 			const subcell = shuffledSubCells[i]
 			updateCell(subcell)
 		}*/
 
 		// FIRING 
-		for (let i = 0; i < cell.content.length; i++) {
+		/*for (let i = 0; i < cell.content.length; i++) {
 			const c = Random.Uint8 % cell.content.length
 			const subcell = cell.content[c]
 			updateCell(subcell)
-		}
+		}*/
 	}
 	
 	//=====//
@@ -300,11 +300,13 @@ const updateCell = (cell) => {
 	let flipped = oneIn(2)
 	{
 		const code21 = getWindow21(cell, flipped)
-		const behave21 = BEHAVES.get(code21)
-		if (behave21 !== undefined) {
-			//code21.d
-			setWindow21(cell, behave21, flipped)
-			//return
+		if (code21 !== undefined) {
+			const behave21 = BEHAVES.get(code21)
+			if (behave21 !== undefined) {
+				//code21.d
+				setWindow21(cell, behave21, flipped)
+				//return
+			}
 		}
 	}
 	/*{
@@ -323,13 +325,27 @@ const updateCell = (cell) => {
 	let flipped12 = oneIn(2)
 	{
 		const code12 = getWindow12(cell, flipped12)
-		//if (code12 !== undefined) {
-			//print(code12)
-		//}
-		const behave12 = BEHAVES.get(code12)
-		if (behave12 !== undefined) {
-			setWindow12(cell, behave12, flipped12)
-			//return
+		if (code12 !== undefined) {
+			const behave12 = BEHAVES.get(code12)
+			if (behave12 !== undefined) {
+				setWindow12(cell, behave12, flipped12)
+				//return
+			}
+		}
+	}
+
+	//==========//
+	// 2x2 down //
+	//==========//
+	let flipped22d = oneIn(2)
+	{
+		const code22d = getWindow22d(cell, flipped22d)
+		if (code22d !== undefined) {
+			const behave22d = BEHAVES.get(code22d)
+			if (behave22d !== undefined) {
+				setWindow22d(cell, behave22d, flipped22d)
+				//return
+			}
 		}
 	}
 	
@@ -389,6 +405,45 @@ const generateCell = (code, cell = {}, parent = cell.parent) => {
 
 	return cell
 
+}
+
+const getWindow22d = (cell, flipped) => {
+	
+	if (flipped) {
+		const originCode = getCellCode(cell)
+		const below = getBelow(cell)
+		const left = getLeft(cell)
+		if (below === undefined) return
+		if (left === undefined) return
+	
+		const belowLeft = getBelow(left)
+		if (belowLeft === undefined) return
+	
+		const belowCode = getCellCode(below)
+		const leftCode = getCellCode(left)
+		const belowLeftCode = getCellCode(belowLeft)
+		
+		const code = "(2:" + leftCode + "," + originCode + "," + belowLeftCode + "," + belowCode + ")"
+		return code
+		
+	}
+
+
+	const originCode = getCellCode(cell)
+	const below = getBelow(cell)
+	const right = getRight(cell)
+	if (below === undefined) return
+	if (right === undefined) return
+
+	const belowRight = getBelow(right)
+	if (belowRight === undefined) return
+
+	const belowCode = getCellCode(below)
+	const rightCode = getCellCode(right)
+	const belowRightCode = getCellCode(belowRight)
+	
+	const code = "(2:" + originCode + "," + rightCode + "," + belowCode + "," + belowRightCode + ")"
+	return code
 }
 
 const getWindow12 = (cell, flipped) => {
@@ -593,6 +648,65 @@ const getLeft = (cell, bug=false) => {
 }
 
 
+const setWindow22d = (cell, value, flipped) => {
+	const dummy = generateCell(value)
+
+	if (!flipped) {
+
+		const dorigin = dummy.content[0]
+		const dbelow = dummy.content[2]
+		const dright = dummy.content[1]
+		const dbelowRight = dummy.content[3]
+
+		cell.content = dorigin.content
+		cell.isMulti = dorigin.isMulti
+		cell.width = dorigin.width
+
+		const below = getBelow(cell)
+		below.content = dbelow.content
+		below.isMulti = dbelow.isMulti
+		below.width = dbelow.width
+		
+		const right = getRight(cell)
+		right.content = dright.content
+		right.isMulti = dright.isMulti
+		right.width = dright.width
+		
+		const belowRight = getBelow(right)
+		belowRight.content = dbelowRight.content
+		belowRight.isMulti = dbelowRight.isMulti
+		belowRight.width = dbelowRight.width
+	}
+	else {
+
+		const dleft = dummy.content[0]
+		const dbelowLeft = dummy.content[2]
+		const dorigin = dummy.content[1]
+		const dbelow = dummy.content[3]
+
+		cell.content = dorigin.content
+		cell.isMulti = dorigin.isMulti
+		cell.width = dorigin.width
+
+		const below = getBelow(cell)
+		below.content = dbelow.content
+		below.isMulti = dbelow.isMulti
+		below.width = dbelow.width
+		
+		const left = getLeft(cell)
+		left.content = dleft.content
+		left.isMulti = dleft.isMulti
+		left.width = dleft.width
+		
+		const belowLeft = getBelow(left)
+		belowLeft.content = dbelowLeft.content
+		belowLeft.isMulti = dbelowLeft.isMulti
+		belowLeft.width = dbelowLeft.width
+	}
+
+}
+
+
 const setWindow12 = (cell, value, flipped) => {
 	const dummy = generateCell(value)
 
@@ -754,8 +868,8 @@ const drawDropper = () => {
 // BEHAVES //
 //=========//
 //let DROP = "(2:269,239)"
-let DROP = "000"
-let OVER = false
+let DROP = "961"
+let OVER = true
 
 const BEHAVES = new Map()
 /*BEHAVES.set("911", "(2:293,239)")
@@ -771,13 +885,14 @@ for (let i = 9; i > 1; i--) {
 
 // WORLD GEN!!!
 world.content = [7, 1, 2]
-for (let r = 9; r > 2; r--) {
+for (let r = 9; r > 1; r--) {
+//for (let r = 9; r > 2; r--) {
 	const nr = Math.max(r - 1, 0)
 	BEHAVES.set(`${r}12`, `(2:${nr}12,${nr}12,${nr}12,${nr}12)`)
 }
 
 // WALL SPAWN
-BEHAVES.set(`(2:212,212)`, `(2:(2:000,556),(2:556,000))`)
+//BEHAVES.set(`(2:212,212)`, `(2:(2:000,556),(2:556,000))`)
 
 // WALLS LEFT+ROGHT
 BEHAVES.set(`(2:000,112)`, "(2:(2:000,556),(2:556,000))")
@@ -826,6 +941,10 @@ for (let r = 9; r > 1; r--) {
 // SAND FALL
 BEHAVES.set("(1:961,112)", "(1:112,961)")
 BEHAVES.set("(1:961,239)", "(1:239,961)")
+
+// SAND SLIDE
+BEHAVES.set("(2:961,112,961,112)", "(2:112,112,961,961)")
+BEHAVES.set("(2:112,961,112,961)", "(2:112,112,961,961)")
 
 // WATER FALL
 BEHAVES.set("(1:239,112)", "(1:112,239)")
