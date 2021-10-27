@@ -13,7 +13,7 @@ on.load(async () => {
 	document.body.style["overflow"] = "hidden"
 	document.body.appendChild(canvas)
 
-	setInterval(tick, 1000 / 40)
+	setInterval(tick, 1000 / 2)
 	setInterval(draw, 1000 / 60)
 
 	trigger("resize")
@@ -31,9 +31,16 @@ on.resize(() => {
 })
 
 let paused = true
+let DZOOM = 0
 on.keydown(e => {
 	if (e.key === " ") {
 		paused = !paused
+	}
+	if (e.key === "ArrowUp") {
+		DZOOM++
+	}
+	if (e.key === "ArrowDown") {
+		DZOOM--
 	}
 })
 
@@ -54,24 +61,28 @@ on.mousemove(e => {
 
 const CAMERA_ZOOM_SPEED = 0.075
 on.mousewheel(e => {
-	if (e.deltaY > 0) {
-		const zoom = (camera.scale - camera.scale * (1 - CAMERA_ZOOM_SPEED))
+	doZoom(e.deltaY > 0)
+	//draw()
+})
+
+const doZoom = (isIn, speedMod = 1.0) => {
+	if (isIn) {
+		const zoom = (camera.scale - camera.scale * (1 - CAMERA_ZOOM_SPEED * speedMod))
 		camera.scale -= zoom
 
 		camera.x += zoom * dropper.x
 		camera.y += zoom * dropper.y
 	}
 	else {
-		const zoom = (camera.scale - camera.scale * (1 - CAMERA_ZOOM_SPEED))
+		const zoom = (camera.scale - camera.scale * (1 - CAMERA_ZOOM_SPEED * speedMod))
 		camera.scale += zoom
 
 		camera.x -= zoom * dropper.x
 		camera.y -= zoom * dropper.y
 		
 	}
-	updateDropperPosition()
-	//draw()
-})
+	//updateDropperPosition()
+}
 
 on.contextmenu(e => {
 	e.preventDefault()
@@ -211,7 +222,7 @@ const dropInCell = (cell, x, y, sx = CELL_SIZE, sy = CELL_SIZE) => {
 	if (cell === undefined) return
 
 	if (!cell.isMulti) {
-		if (!OVER) {
+		if (!OVER && DROP !== GREY) {
 			const co = getCellCode(cell)
 			if (co !== GREY) return
 		}
@@ -809,6 +820,7 @@ const draw = () => {
 
 	context.scale(1/camera.scale, 1/camera.scale)
 	context.translate(-camera.x, -camera.y)
+	if (DZOOM !== 0) doZoom(DZOOM < 0, Math.abs(DZOOM) * 0.02)
 }
 
 const CELL_MARGIN = 0.02
@@ -868,7 +880,7 @@ const drawDropper = () => {
 // BEHAVES //
 //=========//
 //let DROP = "(2:269,239)"
-let DROP = "961"
+let DROP = "253"
 let OVER = true
 
 const BEHAVES = new Map()
@@ -876,12 +888,13 @@ const BEHAVES = new Map()
 BEHAVES.set("293", "(1:911,239)")*/
 
 // FRACTAL ZTUFF
-/*world.content = [2, 5, 3]
+/*world.content = [2, 9, 3]
 for (let i = 9; i > 1; i--) {
 	const nr = Math.max(i - 1, 0)
 	//BEHAVES.set(`${nr}12`, `(2:${nr}12,${nr}12),${nr}11,${nr}12)`)
-	BEHAVES.set(`2${i}3`, `(2:2${nr}3,2${nr}3,239,2${nr}3)`)
-}*/
+	//BEHAVES.set(`2${i}3`, `(2:2${nr}3,239,239,2${nr}3)`)
+}
+BEHAVES.set(`293`, `(2:239,293,239,293)`)*/
 
 // WORLD GEN!!!
 world.content = [7, 1, 2]
@@ -922,7 +935,7 @@ BEHAVES.set(`(1:(2:556,000),212)`, `(1:(2:556,000),(2:556,000))`)
 
 // BORDER WORLD GEN!!!
 /*world.content = [4, 0, 0]
-for (let r = 9; r > 1; r--) {
+for (let r = 9; r > 0; r--) {
 	const nr = Math.max(r - 1, 0)
 	BEHAVES.set(`${r}12`, `(3:${nr}12,${nr}12,${nr}12,${nr}12,${nr}12,${nr}12,${nr}12,${nr}12,${nr}12)`)
 	BEHAVES.set(`${r}00`, `(3:${nr}00,${nr}00,${nr}00,${nr}00,${nr}12,${nr}00,${nr}00,${nr}00,${nr}00)`)
@@ -951,14 +964,97 @@ BEHAVES.set("(1:239,112)", "(1:112,239)")
 BEHAVES.set("(2:239,112)", "(2:112,239)")
 BEHAVES.set("(2:112,239)", "(2:239,112)")
 
-// LEFT WATER
-BEHAVES.set("(1:(2:239,269),112)", "(1:112,(2:239,269))")
-BEHAVES.set("(2:112,(2:239,269))", "(2:(2:239,269),112)")
-BEHAVES.set("(2:(2:239,269),(2:239,269))", "(2:(2:239,269),(2:269,239))")
-BEHAVES.set("(2:(2:269,269),(2:239,269))", "(2:(2:269,269),(2:269,239))")
-
 // RIGHT WATER
+const RIGHT_WATER = "(2:239,269)"
+BEHAVES.set("(1:(2:239,269),112)", "(1:112,(2:239,269))")
+BEHAVES.set("(2:(2:239,269),112)", "(2:112,(2:239,269))")
+BEHAVES.set("(2:(2:239,269),(2:556,000))", "(2:(2:269,239),(2:556,000))")
+BEHAVES.set("(2:(2:239,269),556)", "(2:(2:269,239),556)")
+
+// LEFT WATER
+const LEFT_WATER = "(2:269,239)"
 BEHAVES.set("(1:(2:269,239),112)", "(1:112,(2:269,239))")
-BEHAVES.set("(2:(2:269,239),112)", "(2:112,(2:269,239))")
-BEHAVES.set("(2:(2:269,239),(2:269,239))", "(2:(2:239,269),(2:269,239))")
-BEHAVES.set("(2:(2:269,239),(2:239,239))", "(2:(2:239,269),(2:239,239))")
+BEHAVES.set("(2:112,(2:269,239))", "(2:(2:269,239),112)")
+BEHAVES.set("(2:(2:000,556),(2:269,239))", "(2:(2:000,556),(2:239,269))")
+BEHAVES.set("(2:556,(2:269,239))", "(2:556,(2:239,269))")
+
+// WATER COLLIDE
+BEHAVES.set("(2:(2:239,269),(2:239,269))", "(2:(2:269,239),(2:239,269))")
+BEHAVES.set("(2:(2:239,269),(2:269,239))", "(2:(2:269,239),(2:239,269))")
+BEHAVES.set("(2:(2:269,239),(2:269,239))", "(2:(2:269,239),(2:239,269))")
+
+// SIMPLE SPLIT
+BEHAVES.set("419", "(2:293,269)")
+
+// ROCKET
+/*const ROCKET_UP = `(1:556,931)`
+const ROCKET_DOWN = `(1:931,556)`
+const ROCKET_RIGHT = `(2:931,556)`
+const ROCKET_LEFT = `(2:556,931)`
+
+BEHAVES.set(`(1:112,${ROCKET_UP})`, `(1:${ROCKET_UP},112)`)
+BEHAVES.set(`(1:556,${ROCKET_UP})`, `(1:556,${ROCKET_RIGHT})`)
+BEHAVES.set(`(1:${ROCKET_UP},${ROCKET_UP})`, `(1:${ROCKET_UP},${ROCKET_RIGHT})`)
+BEHAVES.set(`(1:${ROCKET_DOWN},${ROCKET_UP})`, `(1:${ROCKET_DOWN},${ROCKET_RIGHT})`)
+BEHAVES.set(`(1:${ROCKET_RIGHT},${ROCKET_UP})`, `(1:${ROCKET_RIGHT},${ROCKET_RIGHT})`)
+BEHAVES.set(`(1:${ROCKET_LEFT},${ROCKET_UP})`, `(1:${ROCKET_LEFT},${ROCKET_RIGHT})`)
+
+BEHAVES.set(`(2:112,${ROCKET_LEFT})`, `(2:${ROCKET_LEFT},112)`)
+BEHAVES.set(`(2:556,${ROCKET_LEFT})`, `(2:556,${ROCKET_UP})`)
+BEHAVES.set(`(2:${ROCKET_UP},${ROCKET_LEFT})`, `(2:${ROCKET_UP},${ROCKET_UP})`)
+BEHAVES.set(`(2:${ROCKET_DOWN},${ROCKET_LEFT})`, `(2:${ROCKET_DOWN},${ROCKET_UP})`)
+BEHAVES.set(`(2:${ROCKET_RIGHT},${ROCKET_LEFT})`, `(2:${ROCKET_RIGHT},${ROCKET_UP})`)
+BEHAVES.set(`(2:${ROCKET_LEFT},${ROCKET_LEFT})`, `(2:${ROCKET_LEFT},${ROCKET_UP})`)
+
+BEHAVES.set(`(1:${ROCKET_DOWN},112)`, `(1:112,${ROCKET_DOWN})`)
+BEHAVES.set(`(1:${ROCKET_DOWN},556)`, `(1:${ROCKET_LEFT},556)`)
+BEHAVES.set(`(1:${ROCKET_DOWN},${ROCKET_UP})`, `(1:${ROCKET_LEFT},${ROCKET_UP})`)
+BEHAVES.set(`(1:${ROCKET_DOWN},${ROCKET_DOWN})`, `(1:${ROCKET_LEFT},${ROCKET_DOWN})`)
+BEHAVES.set(`(1:${ROCKET_DOWN},${ROCKET_RIGHT})`, `(1:${ROCKET_LEFT},${ROCKET_RIGHT})`)
+BEHAVES.set(`(1:${ROCKET_DOWN},${ROCKET_LEFT})`, `(1:${ROCKET_LEFT},${ROCKET_LEFT})`)
+
+BEHAVES.set(`(2:${ROCKET_RIGHT},112)`, `(2:112,${ROCKET_RIGHT})`)
+BEHAVES.set(`(2:${ROCKET_RIGHT},556)`, `(2:${ROCKET_DOWN},556)`)
+BEHAVES.set(`(2:${ROCKET_RIGHT},${ROCKET_UP})`, `(2:${ROCKET_DOWN},${ROCKET_UP})`)
+BEHAVES.set(`(2:${ROCKET_RIGHT},${ROCKET_DOWN})`, `(2:${ROCKET_DOWN},${ROCKET_DOWN})`)
+BEHAVES.set(`(2:${ROCKET_RIGHT},${ROCKET_RIGHT})`, `(2:${ROCKET_DOWN},${ROCKET_RIGHT})`)
+BEHAVES.set(`(2:${ROCKET_RIGHT},${ROCKET_LEFT})`, `(2:${ROCKET_DOWN},${ROCKET_LEFT})`)
+
+// EXPLOSION
+const EXPLOSION = `(1:911,999)`
+for (let i = 9; i > 0; i--) {
+	BEHAVES.set(`(2:(1:911,${i}${i}${i}),112)`, `(2:(1:911,${i-1}${i-1}${i-1}),(1:911,${i-1}${i-1}${i-1}))`)
+	BEHAVES.set(`(1:(1:911,${i}${i}${i}),112)`, `(1:(1:911,${i-1}${i-1}${i-1}),(1:911,${i-1}${i-1}${i-1}))`)
+	BEHAVES.set(`(2:112,(1:911,${i}${i}${i}))`, `(2:(1:911,${i-1}${i-1}${i-1}),(1:911,${i-1}${i-1}${i-1}))`)
+	BEHAVES.set(`(1:112,(1:911,${i}${i}${i}))`, `(1:(1:911,${i-1}${i-1}${i-1}),(1:911,${i-1}${i-1}${i-1}))`)
+	//BEHAVES.set(`(1:911,${i}${i}${i})`, `(1:911,${i-1}${i-1}${i-1})`)
+}
+
+BEHAVES.set(`(2:(1:911,000),112)`, `(2:112,112)`)
+BEHAVES.set(`(2:112,(1:911,000))`, `(2:112,112)`)
+BEHAVES.set(`(1:(1:911,000),112)`, `(1:112,112)`)
+BEHAVES.set(`(1:112,(1:911,000))`, `(1:112,112)`)
+
+// FIREWORK 
+const FIREWORK = `(1:000,900)`
+for (let i = 9; i > 0; i--) {
+	BEHAVES.set(`(1:112,(1:000,${i}00))`, `(1:(1:000,${i-1}00),112)`)
+	//BEHAVES.set(`(1:911,${i}${i}${i})`, `(1:911,${i-1}${i-1}${i-1})`)
+}
+BEHAVES.set(`(2:(1:000,000),112)`, `(2:(1:911,999),112)`)
+BEHAVES.set(`(2:112,(1:000,000))`, `(2:112,(1:911,999))`)
+BEHAVES.set(`(1:(1:000,000),112)`, `(1:(1:911,999),112)`)
+BEHAVES.set(`(1:112,(1:000,000))`, `(1:112,(1:911,999))`)*/
+
+on.keydown(e => {
+	if (e.key === "1") DROP = "(2:000,556)"
+	if (e.key === "2") DROP = "(2:556,000)"
+	if (e.key === "r") DROP = RIGHT_WATER
+	if (e.key === "s") DROP = YELLOW
+	if (e.key === "w") DROP = SILVER
+	if (e.key === "e") DROP = GREY
+	if (e.key === "t") DROP = ROCKET_UP
+	if (e.key === "b") DROP = EXPLOSION
+	if (e.key === "v") DROP = FIREWORK
+
+}) 
