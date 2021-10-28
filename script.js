@@ -13,7 +13,7 @@ on.load(async () => {
 	document.body.style["overflow"] = "hidden"
 	document.body.appendChild(canvas)
 
-	setInterval(tick, 1000 / 2)
+	setInterval(tick, 1000 / 30)
 	setInterval(draw, 1000 / 60)
 
 	trigger("resize")
@@ -180,10 +180,17 @@ const drop = () => {
 	if (!Mouse.Left) {
 		prevDropper.x = dropper.x
 		prevDropper.y = dropper.y
+		dropCd = false
 		return
 	}
 	if (prevDropper.x !== undefined) {
+		if (ONE && dropCd) {
+			prevDropper.x = dropper.x
+			prevDropper.y = dropper.y
+			return
+		}
 		const [dx, dy] = [dropper.x - prevDropper.x, dropper.y - prevDropper.y]
+		dropCd = true
 		const dmax = Math.max(Math.abs(dx), Math.abs(dy))
 		if (dmax === 0) {
 			//drop(mx, my)
@@ -217,6 +224,7 @@ const drop = () => {
 	prevDropper.y = dropper.y
 }
 
+let dropCd = false
 const dropInCell = (cell, x, y, sx = CELL_SIZE, sy = CELL_SIZE) => {
 
 	if (cell === undefined) return
@@ -880,8 +888,10 @@ const drawDropper = () => {
 // BEHAVES //
 //=========//
 //let DROP = "(2:269,239)"
-let DROP = "253"
-let OVER = true
+let DROP = YELLOW
+let OVER = false
+let ONE = false
+paused = false
 
 const BEHAVES = new Map()
 /*BEHAVES.set("911", "(2:293,239)")
@@ -897,7 +907,7 @@ for (let i = 9; i > 1; i--) {
 BEHAVES.set(`293`, `(2:239,293,239,293)`)*/
 
 // WORLD GEN!!!
-world.content = [7, 1, 2]
+world.content = [6, 1, 2]
 for (let r = 9; r > 1; r--) {
 //for (let r = 9; r > 2; r--) {
 	const nr = Math.max(r - 1, 0)
@@ -987,7 +997,7 @@ BEHAVES.set("(2:(2:269,239),(2:269,239))", "(2:(2:269,239),(2:239,269))")
 BEHAVES.set("419", "(2:293,269)")
 
 // ROCKET
-/*const ROCKET_UP = `(1:556,931)`
+const ROCKET_UP = `(1:556,931)`
 const ROCKET_DOWN = `(1:931,556)`
 const ROCKET_RIGHT = `(2:931,556)`
 const ROCKET_LEFT = `(2:556,931)`
@@ -1044,17 +1054,19 @@ for (let i = 9; i > 0; i--) {
 BEHAVES.set(`(2:(1:000,000),112)`, `(2:(1:911,999),112)`)
 BEHAVES.set(`(2:112,(1:000,000))`, `(2:112,(1:911,999))`)
 BEHAVES.set(`(1:(1:000,000),112)`, `(1:(1:911,999),112)`)
-BEHAVES.set(`(1:112,(1:000,000))`, `(1:112,(1:911,999))`)*/
+BEHAVES.set(`(1:112,(1:000,000))`, `(1:112,(1:911,999))`)
 
 on.keydown(e => {
 	if (e.key === "1") DROP = "(2:000,556)"
 	if (e.key === "2") DROP = "(2:556,000)"
 	if (e.key === "r") DROP = RIGHT_WATER
 	if (e.key === "s") DROP = YELLOW
+	if (e.key === "q") DROP = "412"
 	if (e.key === "w") DROP = SILVER
 	if (e.key === "e") DROP = GREY
 	if (e.key === "t") DROP = ROCKET_UP
 	if (e.key === "b") DROP = EXPLOSION
 	if (e.key === "v") DROP = FIREWORK
+	if (e.key === "`") ONE = !ONE
 
 }) 
